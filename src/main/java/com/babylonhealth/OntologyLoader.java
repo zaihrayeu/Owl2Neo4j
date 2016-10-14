@@ -5,6 +5,7 @@ import com.babylonhealth.ontology.ElementNames;
 import com.babylonhealth.ontology.OntologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.search.EntitySearcher;
@@ -27,6 +28,7 @@ public class OntologyLoader {
     private static int rangeLinksCount = 0;
     private static int subPropertyLinksCount = 0;
     private static int inversePropertyLinksCount = 0;
+    private static int someValueFromRestrictionsCount = 0;
 
 
     public static void main(String[] args) {
@@ -79,6 +81,9 @@ public class OntologyLoader {
             // Inverse links for Object properties
             createInverseObjectPropertyLinks(propMap);
 
+            // Some values from restrictions
+            createSomeValueFromRestrictions(ontology, nodeMap, propMap);
+
             tx.success();
 
             System.out.println("Nodes created: " + classCount);
@@ -90,7 +95,7 @@ public class OntologyLoader {
             System.out.println("Range links created: " + rangeLinksCount);
             System.out.println("Sub property links created: " + subPropertyLinksCount);
             System.out.println("Inverse property links created: " + inversePropertyLinksCount);
-
+            System.out.println("Some values from restriction links created: " + someValueFromRestrictionsCount);
         }
     }
 
@@ -216,13 +221,47 @@ public class OntologyLoader {
     }
 
     private static void createInverseObjectPropertyLinks(Map<OWLObjectProperty, Node> propMap) {
-        // Object property hierarchy construction
         for (OWLObjectProperty property : propMap.keySet()) {
             OWLObjectPropertyExpression inverseProperty = property.getInverseProperty();
             if (inverseProperty != null && !inverseProperty.isAnonymous()) {
                 OWLObjectProperty p = inverseProperty.getNamedProperty();
                 propMap.get(property).createRelationshipTo(propMap.get(p), ElementNames.RelTypes.INVERSE_OBJECT_PROPERTY);
                 inversePropertyLinksCount++;
+            }
+        }
+    }
+
+    /**
+     * creates some value from restriction links as follows: the link is created from the class node that has the
+     * restriction and the link points to the object property node. the link type is SOME_VALUES_FROM_RESTRICTION.
+     * the link is annotated with a property that sotres the URI of the target class for the restriction (owl:someValuesFrom)
+     *
+     * @param ontology input ontology
+     * @param nodeMap  map from OWL classes to neo4j nodes
+     * @param propMap  map from OWL object properties to neo4j nodes
+     */
+    private static void createSomeValueFromRestrictions(OWLOntology ontology, Map<OWLClass, Node> nodeMap,
+                                                        Map<OWLObjectProperty, Node> propMap) {
+        for (OWLClass c : ontology.getClassesInSignature()) {
+            Set<OWLClassAxiom> tempAx = ontology.getAxioms(c);
+            for (OWLClassAxiom ax : tempAx) {
+                for (OWLClassExpression nce : ax.getNestedClassExpressions())
+                    if (nce.getClassExpressionType() != ClassExpressionType.OWL_CLASS) {
+                        // not very elegant, as a last minute solution..
+                        if (ax instanceof OWLSubClassOfAxiom &&
+                                ((OWLSubClassOfAxiom) ax).getSuperClass() instanceof OWLObjectSomeValuesFrom) {
+                            OWLObjectSomeValuesFrom ax1 = (OWLObjectSomeValuesFrom) ((OWLSubClassOfAxiom) ax).getSuperClass();
+                            Relationship rel = nodeMap.get(c).createRelationshipTo(propMap.get(ax1.getProperty().asOWLObjectProperty()),
+                                    ElementNames.RelTypes.SOME_VALUES_FROM_RESTRICTION);
+                            OWLClassExpression filler = ax1.getFiller();
+                            if (!filler.isAnonymous()) {
+                                Node target = nodeMap.get(filler.asOWLClass());
+                                rel.setProperty(ElementNames.SOME_VALUES_FROM_RESTRICTION_TARGET_CLASS_URI,
+                                        target.getProperty(ElementNames.URI));
+                                someValueFromRestrictionsCount++;
+                            }
+                        }
+                    }
             }
         }
     }
