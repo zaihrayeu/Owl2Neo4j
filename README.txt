@@ -1,5 +1,5 @@
 1. Build the project using Maven
-2. Run the OntologyLoader class providing the path to an owl file as an argument to the main method. It will import the owl ontology to neo4j
+2. Run the OntologyLoader class providing the path to an owl file as an argument to the main method. It will import the owl ontology to neo4j. The Pizza OWL ontology is included in the /ont/ folder as an example
 3. Run the OntologyReader class to print teh current ontologies in neo4j
 4. Enjoy :-))
 
