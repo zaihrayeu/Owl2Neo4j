@@ -8,6 +8,7 @@ import org.neo4j.graphdb.RelationshipType;
  */
 public class ElementNames {
 
+    public final static String URI = "uri";
     public final static String LABEL = "label";
 
     public enum RelTypes implements RelationshipType {

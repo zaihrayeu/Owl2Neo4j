@@ -101,6 +101,7 @@ public class OntologyLoader {
         for (OWLClass c : ontology.getClassesInSignature()) {
             String className = getClassName(c);
             Node node = graphDb.createNode(ElementNames.OntologyElements.CLASS);
+            node.setProperty(ElementNames.URI, c.getIRI().toString());
             node.setProperty(ElementNames.LABEL, className);
             nodeMap.put(c, node);
             ontologyNode.createRelationshipTo(node, ElementNames.RelTypes.HAS_CLASS);
@@ -128,6 +129,7 @@ public class OntologyLoader {
         for (OWLNamedIndividual individual : ontology.getIndividualsInSignature()) {
             String name = getClassName(individual);
             Node instanceNode = graphDb.createNode(ElementNames.OntologyElements.INSTANCE);
+            instanceNode.setProperty(ElementNames.URI, individual.getIRI().toString());
             instanceNode.setProperty(ElementNames.LABEL, name);
             for (OWLClassExpression type : EntitySearcher.getTypes(individual, ontology)) {
                 Node instanceClassNode = nodeMap.get(type.asOWLClass());
@@ -147,6 +149,7 @@ public class OntologyLoader {
         for (OWLObjectProperty property : ontology.getObjectPropertiesInSignature()) {
             String name = getClassName(property);
             Node node = graphDb.createNode(ElementNames.OntologyElements.OBJECT_PROPERTY);
+            node.setProperty(ElementNames.URI, property.getIRI().toString());
             node.setProperty(ElementNames.LABEL, name);
             propMap.put(property, node);
             // add domain links
