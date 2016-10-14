@@ -25,6 +25,7 @@ public class OntologyLoader {
     private static int domainLinksCount = 0;
     private static int rangeLinksCount = 0;
     private static int subPropertyLinksCount = 0;
+    private static int inversePropertyLinksCount = 0;
 
 
     public static void main(String[] args) {
@@ -70,6 +71,9 @@ public class OntologyLoader {
             // Object property hierarchy construction
             createObjectPropertyHierarchy(ontology, propMap);
 
+            // Inverse links for Object properties
+            createInverseObjectPropertyLinks(propMap);
+
             tx.success();
 
             System.out.println("Nodes created: " + classCount);
@@ -79,6 +83,7 @@ public class OntologyLoader {
             System.out.println("Domain links created: " + domainLinksCount);
             System.out.println("Range links created: " + rangeLinksCount);
             System.out.println("Sub property links created: " + subPropertyLinksCount);
+            System.out.println("Inverse property links created: " + inversePropertyLinksCount);
 
         }
     }
@@ -184,6 +189,18 @@ public class OntologyLoader {
                 OWLObjectProperty p = axiom.getSubProperty().asOWLObjectProperty();
                 propMap.get(property).createRelationshipTo(propMap.get(p), ElementNames.RelTypes.SUB_OBJECT_PROPERTY);
                 subPropertyLinksCount++;
+            }
+        }
+    }
+
+    private static void createInverseObjectPropertyLinks(Map<OWLObjectProperty, Node> propMap) {
+        // Object property hierarchy construction
+        for (OWLObjectProperty property : propMap.keySet()) {
+            OWLObjectPropertyExpression inverseProperty = property.getInverseProperty();
+            if (inverseProperty != null && !inverseProperty.isAnonymous()) {
+                OWLObjectProperty p = inverseProperty.getNamedProperty();
+                propMap.get(property).createRelationshipTo(propMap.get(p), ElementNames.RelTypes.INVERSE_OBJECT_PROPERTY);
+                inversePropertyLinksCount++;
             }
         }
     }

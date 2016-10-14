@@ -12,7 +12,7 @@ public class ElementNames {
     public final static String LABEL = "label";
 
     public enum RelTypes implements RelationshipType {
-        HAS_CLASS, IS_A, INSTANCE_OF, HAS_DOMAIN, HAS_RANGE, SUB_OBJECT_PROPERTY
+        HAS_CLASS, IS_A, INSTANCE_OF, HAS_DOMAIN, HAS_RANGE, SUB_OBJECT_PROPERTY, INVERSE_OBJECT_PROPERTY
     }
 
     public enum OntologyElements implements Label {ONTOLOGY, CLASS, INSTANCE, OBJECT_PROPERTY}
