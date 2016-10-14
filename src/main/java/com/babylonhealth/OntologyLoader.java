@@ -20,6 +20,7 @@ public class OntologyLoader {
 
     private static int classCount = 0;
     private static int isaCount = 0;
+    private static int disjointCount = 0;
     private static int instanceOfCount = 0;
     private static int objPropertyCount = 0;
     private static int domainLinksCount = 0;
@@ -45,6 +46,7 @@ public class OntologyLoader {
             // Reset counters
             classCount = 0;
             isaCount = 0;
+            disjointCount = 0;
             instanceOfCount = 0;
             objPropertyCount = 0;
             domainLinksCount = 0;
@@ -59,6 +61,9 @@ public class OntologyLoader {
 
             // Create IS-A links between node classes
             createIsaHierarchy(ontology, nodeMap);
+
+            // Create disjoint links between node classes
+            createDisjointClassesLinks(ontology, nodeMap);
 
             // Create nodes for instances and link then to class nodes
             createInstances(ontology, graphDb, nodeMap);
@@ -78,6 +83,7 @@ public class OntologyLoader {
 
             System.out.println("Nodes created: " + classCount);
             System.out.println("IS_A links created: " + isaCount);
+            System.out.println("Disjoint classes links created: " + disjointCount);
             System.out.println("INSTANCE_OF links created: " + instanceOfCount);
             System.out.println("Object property definitions created: " + objPropertyCount);
             System.out.println("Domain links created: " + domainLinksCount);
@@ -120,10 +126,26 @@ public class OntologyLoader {
         for (OWLClass c : ontology.getClassesInSignature()) {
             Set<OWLSubClassOfAxiom> subClassOfAxioms = ontology.getSubClassAxiomsForSuperClass(c);
             for (OWLSubClassOfAxiom axiom : subClassOfAxioms) {
-                // it should be an OWLClass otherwise an exception will be thrown in the next line
-                OWLClass child = axiom.getSubClass().asOWLClass();
-                nodeMap.get(c).createRelationshipTo(nodeMap.get(child), ElementNames.RelTypes.IS_A);
-                isaCount++;
+                if (!axiom.getSubClass().isAnonymous()) {
+                    OWLClass child = axiom.getSubClass().asOWLClass();
+                    nodeMap.get(c).createRelationshipTo(nodeMap.get(child), ElementNames.RelTypes.IS_A);
+                    isaCount++;
+                }
+            }
+        }
+    }
+
+    private static void createDisjointClassesLinks(OWLOntology ontology, Map<OWLClass, Node> nodeMap) {
+        for (OWLClass c : ontology.getClassesInSignature()) {
+            Set<OWLDisjointClassesAxiom> disjointClassesAxioms = ontology.getDisjointClassesAxioms(c);
+            for (OWLDisjointClassesAxiom axiom : disjointClassesAxioms) {
+                for (OWLClassExpression e : axiom.getClassExpressions()) {
+                    if (!e.isAnonymous() && !e.asOWLClass().equals(c)) {
+                        nodeMap.get(c).createRelationshipTo(nodeMap.get(e.asOWLClass()),
+                                ElementNames.RelTypes.DISJOINT);
+                        disjointCount++;
+                    }
+                }
             }
         }
     }
